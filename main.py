@@ -6,13 +6,13 @@ from dotenv import load_dotenv
 from datetime import datetime
 
 # =================================================================
-# MEUAI - DISCRETE DM AUTOMATION (v23.0 - PUBLIC UX & CLEAN DESIGN)
+# MEUAI - PROFESSIONAL AUTOMATION (v23.0 - CONSOLIDATED)
 # =================================================================
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-# CONFIG
+# CONFIGURATION
 AUTHORIZED_USER_ID = 1003765580823805982
 REQUIRED_ROLE_ID = 1439202018865446948
 
@@ -72,6 +72,7 @@ class TaskCompleter:
 
         if not vocabs: return None, 0, 0
 
+        # Simulation: Speed with 10% random variance
         ts = math.floor(self.speed + ((random.random() - 0.5) / 10) * self.speed) * 1000
         score_base = len(vocabs) * 200
         
@@ -108,14 +109,8 @@ class DMControlView(ui.View):
 
 class DMProgress:
     def __init__(self, user, tasks, token, hws, speed):
-        self.user = user
-        self.tasks = tasks
-        self.token = token
-        self.hws = hws
-        self.speed = speed
-        self.logs = ["📡 Authentication verified. Initializing simulation."]
-        self.total_reported_time = 0
-        self.is_running = True
+        self.user, self.tasks, self.token, self.hws, self.speed = user, tasks, token, hws, speed
+        self.logs, self.total_reported_time, self.is_running = ["📡 Neural link established. Initializing."], 0, True
 
     def create_embed(self, current_name, progress, finished, total, status="Processing"):
         color = 0x2b2d31
@@ -124,21 +119,21 @@ class DMProgress:
         
         log_display = "\n".join(self.logs[-5:])
         embed = discord.Embed(title=f"🛠️ Simulation Status: {status}", color=color)
-        embed.description = f"**Simulated Agent:** `Tutor-Network-Node-{random.randint(100, 999)}`"
+        embed.description = f"**Agent:** `Node-{random.randint(100, 999)}`"
         
         bar_len = 16
         filled = int((progress/100) * bar_len)
         bar = "█" * filled + "░" * (bar_len - filled)
         
-        embed.add_field(name="Deployment Data", value=f"**Task:** `{current_name}`\n**Logged:** `{seconds_to_string(self.total_reported_time)}`", inline=True)
+        embed.add_field(name="Deployment Data", value=f"**Task:** `{current_name}`\n**Logged Time:** `{seconds_to_string(self.total_reported_time)}`", inline=True)
         embed.add_field(name="Queue", value=f"**Progress:** `{progress}%`\n**Items:** `{finished}/{total}`", inline=True)
         embed.add_field(name="Agent Output", value=f"```ansi\n\u001b[0;32m[SYSTEM]\u001b[0;0m {log_display}```", inline=False)
-        embed.set_footer(text="Language Nut | Secure Neural Tutor Network")
+        embed.set_footer(text=f"MeuAi Professional | {datetime.now().strftime('%H:%M:%S')}")
         return embed
 
     async def start(self):
         view = DMControlView(self)
-        try: dm_msg = await self.user.send(embed=self.create_embed("Connecting...", 0, 0, len(self.tasks)), view=view)
+        try: dm_msg = await self.user.send(embed=self.create_embed("Syncing...", 0, 0, len(self.tasks)), view=view)
         except: return
 
         finished, total = 0, len(self.tasks)
@@ -155,7 +150,7 @@ class DMProgress:
                 if res:
                     self.total_reported_time += time_taken
                     self.logs.append(f"Synced: {t.get('name', 'Task')[:15]} (+{seconds_to_string(time_taken)})")
-                else: self.logs.append(f"⚠️ Error in node: {t.get('name', 'Task')[:15]}")
+                else: self.logs.append(f"⚠️ Simulation Error: {t.get('name', 'Task')[:15]}")
                 
                 pct = int((finished/total)*100)
                 try: await dm_msg.edit(embed=self.create_embed(t.get('name', 'Task'), pct, finished, total))
@@ -168,17 +163,15 @@ class DMProgress:
 class MainDashboard(ui.View):
     def __init__(self, token, hws, user):
         super().__init__(timeout=None)
-        self.token, self.hws, self.user = token, hws, user
-        self.selected_tasks = []
-        self.speed = 5.0
+        self.token, self.hws, self.user, self.selected_tasks, self.speed = token, hws, user, [], 120.0
         self.all_tasks = [(h_idx, t_idx, t) for h_idx, h in enumerate(hws) for t_idx, t in enumerate(h['tasks'])]
         self.add_item(TaskSelect(self.all_tasks))
 
     def create_embed(self):
-        embed = discord.Embed(title="💠 Language Nut Control Center", color=0x2b2d31)
-        embed.description = "Select assignments from the queue. Adjusted time will be reported to the platform logs."
-        embed.add_field(name="System Diagnostics", value=f"• Queue: `{len(self.all_tasks)}` tasks\n• Target: `{len(self.selected_tasks)}` tasks\n• Simulation Speed: `{seconds_to_string(self.speed)}/task`", inline=False)
-        embed.set_footer(text="Language Nut | Advanced Tutor Integration")
+        embed = discord.Embed(title="🛡️ MeuAi Control Center", color=0x2b2d31)
+        embed.description = "Select assignments from the queue to initialize simulation."
+        embed.add_field(name="Diagnostics", value=f"• Queue: `{len(self.all_tasks)}` tasks\n• Target: `{len(self.selected_tasks)}` tasks\n• Simulation Speed: `{int(self.speed)}s/task`", inline=False)
+        embed.set_footer(text="Language Nut | Neural Tutor Network")
         return embed
 
     @ui.button(label="Initialize Simulation", style=discord.ButtonStyle.success, emoji="⚡", row=1)
@@ -192,16 +185,15 @@ class MainDashboard(ui.View):
     @ui.button(label="Adjust Time", style=discord.ButtonStyle.gray, emoji="⏲️", row=1)
     async def set_time(self, it: discord.Interaction, button: ui.Button):
         modal = ui.Modal(title="Calibration: Time Simulation")
-        time_input = ui.TextInput(label="Reported Seconds per Task", placeholder="e.g. 5, 300, 86400", default=str(int(self.speed)))
+        time_input = ui.TextInput(label="Reported Seconds per Task", placeholder="e.g. 120", default=str(int(self.speed)))
         async def on_sub(inter):
             try:
                 self.speed = float(time_input.value)
                 await inter.response.edit_message(embed=self.create_embed())
             except: await inter.response.send_message("Invalid input.", ephemeral=True)
-        modal.on_submit = on_sub; modal.add_item(time_input)
-        await it.response.send_modal(modal)
+        modal.on_submit = on_sub; modal.add_item(time_input); await it.response.send_modal(modal)
 
-    @ui.button(label="Select Full Queue", style=discord.ButtonStyle.secondary, emoji="📋", row=1)
+    @ui.button(label="Select All", style=discord.ButtonStyle.secondary, emoji="📋", row=1)
     async def select_all(self, it: discord.Interaction, button: ui.Button):
         self.selected_tasks = [f"{i}" for i in range(min(len(self.all_tasks), 25))]
         await it.response.edit_message(embed=self.create_embed(), view=self)
@@ -225,7 +217,7 @@ class Portal(ui.View):
 
     @ui.button(label="Language Nut Login", style=discord.ButtonStyle.success, emoji="🔐")
     async def start(self, it: discord.Interaction, button: ui.Button):
-        modal = ui.Modal(title="Tutor Gateway Authentication")
+        modal = ui.Modal(title="Gateway Authentication")
         u = ui.TextInput(label="Username"); p = ui.TextInput(label="Password", style=discord.TextStyle.short)
         async def on_sub(inter):
             await inter.response.defer(ephemeral=True)
@@ -239,8 +231,7 @@ class Portal(ui.View):
                     dash = MainDashboard(token, homework_data, inter.user)
                     await inter.followup.send(embed=dash.create_embed(), view=dash, ephemeral=True)
                 else: await inter.followup.send("❌ Access Denied: Invalid Credentials.", ephemeral=True)
-        modal.on_submit = on_sub; modal.add_item(u); modal.add_item(p)
-        await it.response.send_modal(modal)
+        modal.on_submit = on_sub; modal.add_item(u); modal.add_item(p); await it.response.send_modal(modal)
 
 class MeuAiBot(commands.Bot):
     def __init__(self):
@@ -251,29 +242,23 @@ bot = MeuAiBot()
 
 @bot.tree.command(name="languagenut", description="Access the Professional Tutor Network")
 async def languagenut(it: discord.Interaction):
-    # Ephemeral set to False so everyone can see the dashboard
     await it.response.defer(ephemeral=False)
     
     role = it.guild.get_role(REQUIRED_ROLE_ID)
     if it.user.id != AUTHORIZED_USER_ID and (not role or role not in it.user.roles):
-        return await it.followup.send("❌ Access Denied: Insufficient Clearance.", ephemeral=True)
+        return await it.followup.send("❌ Access Denied.", ephemeral=True)
     
     embed = discord.Embed(title="💠 Language Nut Professional Portal", color=0x2b2d31)
     embed.description = (
-        "Welcome to the **Language Nut Portal**. This system connects you to a professional network of "
+        "Welcome to the **MeuAi Portal**. This system connects you to a professional network of "
         "tutors who will complete your LanguageNut assignments for you.\n\n"
         "**Terms of Use:**\n"
-        "• We use real tutor human-simulation for safety.\n"
+        "• Human-simulation active for profile safety.\n"
         "• All results are final.\n"
-        "• Users are responsible for their own academic integrity.\n"
-        "• Unauthorized access to this portal is strictly prohibited.\n\n"
-        "**Disclaimers:**\n"
-        "This tool is for educational simulation purposes. The developers are not responsible for "
-        "any misuse or academic consequences resulting from the use of this software."
+        "• Users are responsible for academic integrity."
     )
-    embed.set_footer(text="Language Nut Secure Gateway • v23.0")
+    embed.set_footer(text="MeuAi Secure Gateway • v23.0")
     await it.followup.send(embed=embed, view=Portal(bot))
 
 if __name__ == "__main__":
     bot.run(TOKEN)
-
